@@ -51,9 +51,9 @@ The Slack App configuration and its manifest are available in [manifest.json](./
 python app.py
 ```
 
-## Interacting with the App
+## App Demo
 
-![Demo Video](https://www.youtube.com/shorts/IwLrV_hJtuE)
+[![Demo Video](https://img.youtube.com/vi/IwLrV_hJtuE/0.jpg)](https://www.youtube.com/watch?v=IwLrV_hJtuE)
 
 ## References
 
