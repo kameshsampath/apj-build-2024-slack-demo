@@ -8,3 +8,4 @@ pytest
 ipykernel
 snowflake-connector-python[pandas]
 vl-convert-python
+python-dotenv

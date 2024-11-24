@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 # Third-party imports
 import altair as alt
+from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk import WebClient
@@ -18,6 +19,9 @@ from snowflake.snowpark.session import Session
 import handler_tasks.blocks as blocks
 from handler_tasks.cortalyst import Cortlayst
 from handler_tasks.db_setup import DBSetup
+
+# load the dotenv
+load_dotenv()
 
 _log_level = os.getenv("APP_LOG_LEVEL", "WARNING")
 

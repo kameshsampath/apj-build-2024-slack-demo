@@ -5,3 +5,6 @@
 **/.dbinfo
 data/**
 !data/*.j2
+!.env.example
+work
+.config
