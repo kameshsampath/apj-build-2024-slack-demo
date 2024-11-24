@@ -1,0 +1,7 @@
+.snowflake
+.pytest_cache
+.direnv
+.cache
+**/.dbinfo
+data/**
+!data/*.j2
