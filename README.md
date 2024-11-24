@@ -53,7 +53,7 @@ python app.py
 
 ## Interacting with the App
 
-![Demo Video](https://youtube.com/shorts/IwLrV_hJtuE?feature=share)
+![Demo Video](https://www.youtube.com/shorts/IwLrV_hJtuE)
 
 ## References
 
