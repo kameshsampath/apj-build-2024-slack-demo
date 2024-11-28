@@ -19,20 +19,12 @@ from snowflake.snowpark.session import Session
 import handler_tasks.blocks as blocks
 from handler_tasks.cortalyst import Cortlayst
 from handler_tasks.db_setup import DBSetup
+from log.logger import get_logger as logger
 
 # load the dotenv
 load_dotenv()
 
-_log_level = os.getenv("APP_LOG_LEVEL", "WARNING")
-
-logging.basicConfig(
-    level=logging.WARNING,
-    format="%(name)s:%(levelname)s:%(message)s",
-    handlers=[logging.StreamHandler()],
-)
-
-logger = logging.getLogger("demo_mate_bot")
-logger.setLevel(level=_log_level)
+logger = logger.getLogger("demo_mate_bot")
 
 try:
     session = Session.builder.getOrCreate()

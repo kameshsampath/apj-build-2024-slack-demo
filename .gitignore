@@ -8,3 +8,7 @@ data/**
 !.env.example
 work
 .config
+keys
+**/*.p8
+**/*.pub
+!scripts/bin/**

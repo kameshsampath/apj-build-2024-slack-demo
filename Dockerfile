@@ -1,17 +1,11 @@
-FROM python:3.11-alpine
+FROM ghcr.io/kameshsampath/snow-dev:py-311
 
-RUN apk add g++ gcc python3-dev musl-dev linux-headers \
-    && pip install --upgrade pip
+USER me
 
-RUN adduser -D demo
-USER demo
-WORKDIR /home/demo
+WORKDIR /home/me/app
 
-COPY --chown=demo:demo requirements.txt requirements.txt
-RUN pip install --user -r requirements.txt
+ADD . /home/me/app
 
-ENV PATH="/home/demo/.local/bin:${PATH}"
-
-COPY --chown=demo:demo . .
+RUN pip install --no-cache --user -r requirements.txt
 
 CMD ["python","app.py"]

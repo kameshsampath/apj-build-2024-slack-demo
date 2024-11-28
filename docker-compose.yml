@@ -1,0 +1,38 @@
+services:
+   config:
+     build:
+       dockerfile_inline: |
+        FROM ghcr.io/kameshsampath/snow-dev:py-311
+        USER me
+
+        WORKDIR /home/me
+
+        ADD src/ /home/me/app/
+        ADD scripts/bin/ /home/me/.local/bin/
+
+        RUN pip install --no-cache --user jinja2 snowflake snowflake-snowpark-python
+        
+        ENV PYTHONPATH=/home/me/app:$$PYTHONPATH
+     image: kameshsampath/snowflake_demo_user_setup
+     user: me
+     volumes:
+        - snowflake_home:/home/me/.snowflake:z
+
+     entrypoint: /home/me/.local/bin/run
+     command:
+        - bash
+        - -c
+        - "tail -f /dev/null"
+     env_file: 
+      - .env
+#    slack-bot:
+#     build:
+#         dockerfile: Dockerfile
+#     image: ghcr.io/kameshsampath/demomate:build24
+#     env_file: .env
+#     volumes:
+#       -  snowflake_home$$HOME/.snowflake
+volumes:
+  snowflake_home:
+       
+
