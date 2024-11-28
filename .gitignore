@@ -11,4 +11,5 @@ work
 keys
 **/*.p8
 **/*.pub
+!scripts/**
 !scripts/bin/**

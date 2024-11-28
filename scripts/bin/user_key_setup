@@ -33,10 +33,11 @@ class UserSetupUtil:
             "PRIVATE_KEY_FILE_DIR", Path.home().joinpath(".snowflake")
         )
         self._private_key_passphrase = os.getenv("PRIVATE_KEY_PASSPHRASE", None)
+        self.session = None
 
     def generate_and_set_rsa_keys(self, force: bool = False) -> Tuple[Path, str, bool]:
         self._pk_file = self._keys_dir.joinpath("snowflake_user.p8")
-        self._pub_file = self._keys_dir.joinpath("snowflake_user.p8")
+        self._pub_file = self._keys_dir.joinpath("snowflake_user.pub")
         if (
             not force
             and (self._keys_dir.exists() and self._keys_dir.is_dir())
@@ -44,9 +45,11 @@ class UserSetupUtil:
             and (self._pub_file.exists() and self._pub_file.is_file())
         ):
             logger.info("KeyPair exists and configured, skip creation.")
+            pub_key = load_rsa_public_key(self._pub_file)
+            fp = get_key_fingerprint(pub_key)
             return (
                 self._pub_file,
-                get_key_fingerprint(load_rsa_public_key(self._pub_file)),
+                fp,
                 False,
             )
         else:
@@ -79,17 +82,26 @@ class UserSetupUtil:
         self, public_key_fp: str, default_connection_name: str
     ):
         logger.debug("Verifying connection with new public key")
+        if self.session is None:
+            self.session = Session.builder.config(
+                "connection_name",
+                default_connection_name,
+            ).getOrCreate()
         _session = None
         try:
             root = Root(self.session)
             user: User = root.users[self._snowflake_user].fetch()
             # should match either rsa_public_key or rsa_public_key2
-            if not match_fingerprints(
-                public_key_fp, user.rsa_public_key_2_fp
-            ) or match_fingerprints(public_key_fp, user.rsa_public_key_fp):
-
+            # strip SHA256:
+            _key_fp_1 = match_fingerprints(
+                public_key_fp, user.rsa_public_key_fp.replace("SHA256:", "")
+            )
+            _key_fp_2 = match_fingerprints(
+                public_key_fp, user.rsa_public_key_2_fp.replace("SHA256:", "")
+            )
+            if not (_key_fp_1 or _key_fp_2):
                 logger.error(
-                    f"Fingerprints mismatch,\n{public_key_fp}\n{user.rsa_public_key_fp}"
+                    f"Fingerprints mismatch,{public_key_fp} != {user.rsa_public_key_fp}\n\n or {public_key_fp} != {user.rsa_public_key_2_fp}"
                 )
                 return
             logger.info(f"Fingerprints matches!")
@@ -104,7 +116,8 @@ class UserSetupUtil:
             logger.error(f"Error verifying, {e}", stack_info=True)
             raise e
         finally:
-            _session.close()
+            if _session is not None:
+                _session.close()
 
 
 def main():

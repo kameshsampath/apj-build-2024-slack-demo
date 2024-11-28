@@ -48,9 +48,8 @@ class ConnectionConfig:
                 "private_key_file": self._private_key_path.resolve(),
             }
         )
-        self.LOGGER.debug(f"Generated Config \n{str}: Len:{len(str)}")
         config_path = self._keys_dir.joinpath("config.toml")
-        self.LOGGER.debug(f"Config file path {config_path}")
+        self.LOGGER.debug(f"Snowflake Config file path {config_path}")
         with Path.open(config_path, "w") as f:
             f.write(str)
             f.flush()

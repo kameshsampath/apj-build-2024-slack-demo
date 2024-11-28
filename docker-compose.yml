@@ -16,7 +16,7 @@ services:
      image: kameshsampath/snowflake_demo_user_setup
      user: me
      volumes:
-        - snowflake_home:/home/me/.snowflake:z
+        - snowflake_home:/home/me/.snowflake
 
      entrypoint: /home/me/.local/bin/run
      command:

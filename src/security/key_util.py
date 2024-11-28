@@ -1,8 +1,13 @@
 import hashlib
 from pathlib import Path
-from typing import Tuple, Union
-from cryptography.hazmat.primitives import serialization
+from typing import Union
+from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.backends import default_backend
+from log.logger import get_logger as _logger
+import base64
+
+logger = _logger("key_util")
 
 
 def load_rsa_public_key(key: Union[Path | str]) -> rsa.RSAPublicKey:
@@ -21,13 +26,20 @@ def load_rsa_public_key(key: Union[Path | str]) -> rsa.RSAPublicKey:
     """
     key_data = None
     if isinstance(key, Path):
+        logger.debug(f"using file {key} to load public key")
         with open(key, "rb") as f:
             key_data = f.read()
     else:
+        logger.debug(f"public key string")
         key_data = bytes(key)
 
+    logger.debug(f"Public Key Data:{key_data}")
+
     try:
-        public_key = serialization.load_pem_public_key(key_data)
+        public_key = serialization.load_pem_public_key(
+            key_data,
+            backend=default_backend(),
+        )
         if not isinstance(public_key, rsa.RSAPublicKey):
             raise ValueError("Not an RSA public key")
         return public_key
@@ -46,14 +58,20 @@ def get_key_fingerprint(public_key: rsa.RSAPublicKey) -> str:
         str: SHA256 fingerprint as hex string
     """
     # Get DER encoding of the public key
-    public_bytes = public_key.public_bytes(
+    key_der = public_key.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
 
-    # Calculate SHA256 hash
-    fingerprint = hashlib.sha256(public_bytes).hexdigest()
-    return fingerprint
+    # Calculate Hash
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(key_der)
+    fingerprint_bytes = digest.finalize()
+
+    # Base64 Encoded FingerPrint
+    base64_fingerprint = base64.b64encode(fingerprint_bytes).decode("ascii")
+
+    return base64_fingerprint
 
 
 def match_fingerprints(fp_1: str, fp_2: str) -> bool:
