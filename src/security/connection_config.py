@@ -13,13 +13,17 @@ class ConnectionConfig:
 
     def __init__(
         self,
-        keys_dir: Path,
+        keys_dir: Optional[Path],
         snowflake_account: Optional[str],
         snowflake_user: Optional[str],
-        private_key_path: Union[Path | None],
-        connection_name: str,
+        private_key_path: Optional[Path],
+        connection_name: Optional[str],
+        default_role: Optional[str],
+        warehouse: Optional[str],
     ):
         self._connection_name = connection_name
+        self._default_role = default_role
+        self._warehouse = warehouse
         self._keys_dir = keys_dir
         self._snowflake_account = snowflake_account
         self._snowflake_user = snowflake_user
@@ -46,6 +50,8 @@ class ConnectionConfig:
                 "account": self._snowflake_account,
                 "user": self._snowflake_user,
                 "private_key_file": self._private_key_path.resolve(),
+                "default_role": self._default_role,
+                "warehouse": self._warehouse,
             }
         )
         config_path = self._keys_dir.joinpath("config.toml")

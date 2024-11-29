@@ -9,6 +9,7 @@ from snowflake.core.pipe import Pipe
 from snowflake.core.schema import Schema
 from snowflake.core.stage import Stage, StageDirectoryTable, StageEncryption
 from snowflake.core.table import Table, TableColumn
+from snowflake.core.warehouse import Warehouse
 
 from slack_sdk import WebClient
 
@@ -49,11 +50,13 @@ class DBSetup:
         schema_name: str = "data",
         semantic_models_stage: str = "semantic_models",
         semantic_model_file: str = "support_tickets_semantic_model.yaml",
+        warehouse_name: str = "compute_wh",
     ):
         self.session = session
         self.root = Root(session)
         self._db_name = db_name
         self._schema_name = schema_name
+        self._warehouse_name = warehouse_name
         self._semantic_models_stage = semantic_models_stage
         self._semantic_model_file = semantic_model_file
 
@@ -88,6 +91,29 @@ class DBSetup:
     @semantic_model_file.setter
     def semantic_model_file(self, semantic_model_file: str):
         self._semantic_model_file = semantic_model_file
+
+    @property
+    def warehouse_name(self):
+        return self._warehouse_name
+
+    @warehouse_name.setter
+    def warehouse_name(self, warehouse_name: str):
+        self._warehouse_name = warehouse_name
+
+    def create_warehouse(self) -> None:
+        """
+        Create the warehouse that will be used as default in the demo.
+
+        Raises:
+            Exception: for any errors
+        """
+        self.LOGGER.debug(f"Creating Warehouse {self.warehouse_name}")
+        wh = Warehouse(name=self.warehouse_name, comment="created by slack bot setup")
+        try:
+            self.root.warehouses[self.warehouse_name].create_or_alter(wh)
+        except Exception as e:
+            self.LOGGER.error(e)
+            raise f"Error creating warehouse {self.warehouse_name},{e}"
 
     def create_db(self, db_name: str) -> None:
         """
@@ -214,7 +240,7 @@ COMMENT = 'created by slack bot setup';
             template_dir = os.path.join(
                 curr_path,
                 "..",
-                "data",
+                "templates",
             )
             # make the absolute path
             template_dir = os.path.abspath(template_dir)
@@ -470,6 +496,12 @@ COMMENT = 'created by slack bot setup';
         """
 
         try:
+            self.LOGGER.debug(f"Create or alter Warehouse : {self.warehouse_name}")
+            self.create_warehouse()
+            client.chat_postMessage(
+                channel=channel_id,
+                text=f":white_check_mark: Created  Warehouse `{self.warehouse_name}`",
+            )
             self.LOGGER.debug(
                 f"Using Database : {self.db_name} and Schema : {self.schema_name}"
             )
@@ -477,7 +509,7 @@ COMMENT = 'created by slack bot setup';
             self.create_db(self.db_name)
             client.chat_postMessage(
                 channel=channel_id,
-                text=f":white_check_mark: Created database {self.db_name}",
+                text=f":white_check_mark: Created database `{self.db_name}`",
             )
             self.create_schema(
                 schema_name=self.schema_name,
@@ -485,7 +517,7 @@ COMMENT = 'created by slack bot setup';
             )
             client.chat_postMessage(
                 channel=channel_id,
-                text=f":white_check_mark:  Created schema {self.schema_name}",
+                text=f":white_check_mark:  Created schema `{self.schema_name}`",
             )
             self.create_file_formats(
                 db_name=self.db_name,

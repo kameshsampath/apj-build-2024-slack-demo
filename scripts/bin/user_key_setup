@@ -29,6 +29,12 @@ class UserSetupUtil:
         self._snowflake_account = os.getenv("SNOWFLAKE_ACCOUNT")
         self._snowflake_user = os.getenv("SNOWFLAKE_USER")
         self._snowflake_password = os.getenv("SNOWFLAKE_PASSWORD")
+        self._snowflake_role = os.getenv("SNOWFLAKE_ROLE", "ACCOUNTADMIN")
+        self._snowflake_warehouse = (
+            os.getenv("SNOWFLAKE_WAREHOUSE")
+            if os.getenv("SNOWFLAKE_WAREHOUSE")
+            else "COMPUTE_WH"
+        )
         self._keys_dir: Path = os.getenv(
             "PRIVATE_KEY_FILE_DIR", Path.home().joinpath(".snowflake")
         )
@@ -59,6 +65,7 @@ class UserSetupUtil:
                     "account": self._snowflake_account,
                     "user": self._snowflake_user,
                     "password": self._snowflake_password,
+                    "role": self._snowflake_role,
                 }
             ).getOrCreate()
 
@@ -75,6 +82,8 @@ class UserSetupUtil:
             self._snowflake_user,
             self._pk_file,
             default_connection_name,
+            self._snowflake_role,
+            self._snowflake_warehouse,
         )
         conn_config.write_config()
 
@@ -83,10 +92,11 @@ class UserSetupUtil:
     ):
         logger.debug("Verifying connection with new public key")
         if self.session is None:
+            logger.debug("Creating new session")
             self.session = Session.builder.config(
                 "connection_name",
                 default_connection_name,
-            ).getOrCreate()
+            ).create()
         _session = None
         try:
             root = Root(self.session)
@@ -96,10 +106,18 @@ class UserSetupUtil:
             _key_fp_1 = match_fingerprints(
                 public_key_fp, user.rsa_public_key_fp.replace("SHA256:", "")
             )
+            if _key_fp_1:
+                logger.debug(
+                    f"Fingerprints '{public_key_fp}' == '{user.rsa_public_key_fp.replace('SHA256:', '')}' matches."
+                )
             _key_fp_2 = match_fingerprints(
                 public_key_fp, user.rsa_public_key_2_fp.replace("SHA256:", "")
             )
-            if not (_key_fp_1 or _key_fp_2):
+            if _key_fp_2:
+                logger.debug(
+                    f"Fingerprints '{public_key_fp}' == '{user.rsa_public_key_2_fp.replace('SHA256:', '')}' matches."
+                )
+            if _key_fp_1 and _key_fp_2:
                 logger.error(
                     f"Fingerprints mismatch,{public_key_fp} != {user.rsa_public_key_fp}\n\n or {public_key_fp} != {user.rsa_public_key_2_fp}"
                 )
@@ -136,6 +154,16 @@ def main():
     if os.getenv("SNOWFLAKE_PASSWORD") is None:
         logger.error("Environment variable 'SNOWFLAKE_PASSWORD' is not defined")
         sys.exit(1)
+
+    if os.getenv("SNOWFLAKE_ROLE") is None:
+        logger.warning(
+            "Environment variable 'SNOWFLAKE_ROLE' is not defined, defaulting to 'ACCOUNTADMIN'"
+        )
+
+    if os.getenv("SNOWFLAKE_WAREHOUSE") is None:
+        logger.warning(
+            "Environment variable 'SNOWFLAKE_WAREHOUSE' is not defined,using 'COMPUTE_WH' will be created if not exists."
+        )
 
     logger.info("Good to run the Snowflake user configuration.")
     user_util = UserSetupUtil()

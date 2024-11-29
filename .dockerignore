@@ -7,4 +7,6 @@ manifest.json
 pytest.ini
 tests
 .pytest_cache
+**/__py_cache__
 .vscode
+.dbinfo

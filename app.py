@@ -1,7 +1,8 @@
+#!/usr/bin/env python3
+
 # Standard library imports
 import io
 import json
-import logging
 import os
 from pathlib import Path
 import sys
@@ -9,7 +10,6 @@ from typing import Any, Dict, List
 
 # Third-party imports
 import altair as alt
-from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk import WebClient
@@ -21,13 +21,17 @@ from handler_tasks.cortalyst import Cortlayst
 from handler_tasks.db_setup import DBSetup
 from log.logger import get_logger as logger
 
-# load the dotenv
-load_dotenv()
 
-logger = logger.getLogger("demo_mate_bot")
+logger = logger("demo_mate_bot")
 
 try:
-    session = Session.builder.getOrCreate()
+    session = Session.builder.config(
+        "connection_name", os.getenv("SNOWFLAKE_CONNECTION_NAME", "default")
+    ).create()
+    logger.debug(
+        f"Account:{session.conf.get('account')},User:{session.conf.get('user')}"
+    )
+    session.sql("DESC USER")
 except Exception as e:
     logger.error(f"Error establishing connection,{e}", exc_info=True)
     sys.exit(1)
@@ -46,13 +50,6 @@ if os.path.exists(".dbinfo"):
         logger.debug(
             f"App will use DB: '{db_setup.db_name}' and Schema: '{ db_setup.schema_name}'"
         )
-
-
-def setLogLevel(logger):
-    """
-    Set the logger level to APP_LOG_LEVEL env
-    """
-    logger.setLevel(_log_level)
 
 
 def do_setup(
@@ -84,19 +81,12 @@ def do_setup(
     try:
         client.chat_postMessage(
             channel=channel_id,
-            text=f"Wait for few seconds for the setup to be done :timer_clock:",
+            text=f"Wait for few seconds for the setup to be done :hourglass_flowing_sand:",
         )
 
         global db_setup
         db_setup.db_name = db_name
         db_setup.schema_name = schema_name
-        ## write to file for persistence
-        with open(".dbinfo", "w") as file:
-            json.dump(
-                {"db_name": db_name, "schema_name": schema_name},
-                file,
-                indent=2,
-            )
         ## call the db setup
         db_setup.do(
             client,
@@ -114,9 +104,16 @@ Try this query in *Snowsight* to view the loaded data:
 SELECT * FROM {db_name}.{schema_name}.SUPPORT_TICKETS;
 ```""",
         )
+        ## write to file for persistence
+        with open(".dbinfo", "w") as file:
+            json.dump(
+                {"db_name": db_name, "schema_name": schema_name},
+                file,
+                indent=2,
+            )
     except Exception as e:
         logger.error(f"Error handling db setup: {e}")
-        files = list(Path("../data").glob("*.yaml"))
+        files = list(Path("src/templates").glob("*.yaml"))
         for file_path in files:
             file_path.unlink()
             logger.info(f"Removed: {file_path}")
@@ -145,7 +142,6 @@ def setup_handler(ack, client, command, respond):
         None
     """
     try:
-        setLogLevel(logger)
         ack()
         command_text = command.get("text", "").strip()
         logger.debug(f"command_text:{command_text}")
@@ -215,7 +211,6 @@ def action_setup_db(ack, body, client, logger):
     Returns:
         None
     """
-    setLogLevel(logger)
     logger.debug(f"Received Message Event: {body}")
 
     # Acknowledge the button click
@@ -234,6 +229,54 @@ def action_setup_db(ack, body, client, logger):
         schema_name=schema_name,
         logger=logger,
     )
+
+
+@app.command("/cleanup")
+def cleanup_handler(ack, client, command, respond):
+    """
+    Handle cleanup of demo resources typically a Database.
+
+    Args:
+        ack: Function to acknowledge receipt of the command to Slack
+        client: Slack client instance used to interact with the Slack API
+        command: Dictionary containing command data including:
+            - text: The text of the command
+            - user_id: ID of the user who triggered the command
+            - channel_id: ID of the channel where command was issued
+            - team_id: ID of the Slack workspace
+        respond: Function to send delayed responses to the command
+
+    Returns:
+        None
+    """
+    logger.debug(f"Received Demo Cleanup Command: {command}")
+    ack()
+    global session
+    channel_id = command["channel_id"]
+    # Send the response with wait message
+    client.chat_postMessage(
+        channel=channel_id,
+        text=f"Wait for few seconds for the cleanup to be done :hourglass_flowing_sand:",
+    )
+    db_name = command.get("text", "").strip()
+    logger.debug(f"command_text:{db_name}")
+    try:
+        if db_name is not None:
+            logger.debug(f"Dropping :command_text:{db_name}")
+            _count = session.sql(f"DROP DATABASE {db_name}").count()
+            if _count > 0:
+                client.chat_postMessage(
+                    channel=channel_id,
+                    text=f":white_check_mark: Database `{db_name}` dropped successfully.",
+                )
+
+    except Exception as e:
+        logger.error(f"Failed to cleanup: {e}")
+        # Fallback response
+        respond(
+            text="Sorry, there was an error during cleanup of Database {db_name}.",
+            response_type="ephemeral",
+        )
 
 
 @app.command("/cortalyst")
@@ -339,7 +382,6 @@ def action_ask_cortex_analyst(ack, body, client, respond, say, logger):
             - Response formatting errors
     """
     ack()
-    setLogLevel(logger)
     try:
         logger.debug(f"Received Message Event: {body}")
         global db_setup  # make sure we use the global one
@@ -389,7 +431,7 @@ def ask_cortex_analyst(channel_id: str, client: WebClient, say, logger, question
 
         client.chat_postMessage(
             channel=channel_id,
-            text=f":timer_clock: Wait for a few seconds... while I ask the Cortex Analyst :robot_face:",
+            text=f":hourglass_flowing_sand: Wait for a few seconds... while I ask the Cortex Analyst :robot_face:",
         )
 
         if os.getenv("PRIVATE_KEY_FILE_PATH") is None:
