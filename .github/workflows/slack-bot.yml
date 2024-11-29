@@ -90,3 +90,4 @@ jobs:
                       PYTHON_TAG=${{ matrix.tag-suffix }}
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
+                  file: Dockerfile.bot
