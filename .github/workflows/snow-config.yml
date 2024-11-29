@@ -23,7 +23,6 @@ on:
 
 env:
     REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository }}/snow-config
 
 jobs:
     build-and-push:
@@ -55,6 +54,10 @@ jobs:
                   registry: ${{ env.REGISTRY }}
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Set lowercase image name
+              run: |
+                  echo "IMAGE_NAME=$(echo ${{ github.repository }}/snow-config | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
             - name: Extract Docker metadata
               id: meta
@@ -90,3 +93,4 @@ jobs:
                       PYTHON_TAG=${{ matrix.tag-suffix }}
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
+                  file: Dockerfile.config

@@ -56,6 +56,10 @@ jobs:
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: Set lowercase image name
+              run: |
+                  echo "IMAGE_NAME=$(echo ${{ github.repository }}/slack-bot | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
             - name: Extract Docker metadata
               id: meta
               uses: docker/metadata-action@v5
@@ -90,3 +94,4 @@ jobs:
                       PYTHON_TAG=${{ matrix.tag-suffix }}
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
+                  file: Dockerfile.bot
