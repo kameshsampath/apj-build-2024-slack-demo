@@ -1,4 +1,5 @@
-FROM ghcr.io/kameshsampath/snow-dev:py-311
+ARG PYTHON_TAG=311
+FROM ghcr.io/kameshsampath/snow-dev:${PYTHON_TAG}
 
 USER me
 
