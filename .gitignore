@@ -5,6 +5,7 @@
 **/.dbinfo
 src/templates/*.yaml
 !.env.example
+!.env.bot.example
 work
 .config
 keys
