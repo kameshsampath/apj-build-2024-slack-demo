@@ -1,0 +1,31 @@
+services:
+   config:
+     container_name: snowflake-config
+     build:
+       dockerfile: Dockerfile.config
+       context: .
+     image: ghcr.io/kameshsampath/snowflake_demo_user_setup
+     user: me
+     volumes:
+        - snowflake_home:/home/me/.snowflake
+     entrypoint: /home/me/.local/bin/run
+     env_file: 
+      - .env
+   slack-bot:
+    container_name: demo-mate
+    build:
+        dockerfile: Dockerfile
+        context: .
+    image: ghcr.io/kameshsampath/demomate:build24
+    user: me
+    env_file: 
+        - .env.bot
+    volumes:
+      -  snowflake_home:/home/me/.snowflake
+    entrypoint: /home/me/.local/bin/run
+    depends_on:
+      - config
+volumes:
+  snowflake_home:
+       
+

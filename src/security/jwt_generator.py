@@ -7,12 +7,12 @@ import base64
 import hashlib
 import logging
 import os
+from log.logger import get_logger as _logger
 
 # This class relies on the PyJWT module (https://pypi.org/project/PyJWT/).
 import jwt
 
-logger = logging.getLogger("jwt_generator")
-logger.setLevel(level=logging.DEBUG)
+logger = _logger("jwt_generator")
 
 try:
     from typing import Text

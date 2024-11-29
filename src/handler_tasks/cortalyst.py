@@ -3,7 +3,7 @@ import logging
 import requests
 from typing import Dict, Any
 
-from utils.jwt_generator import JWTGenerator
+from security.jwt_generator import JWTGenerator
 
 
 class Cortlayst:

@@ -3,8 +3,13 @@
 .direnv
 .cache
 **/.dbinfo
-data/**
-!data/*.j2
+src/templates/*.yaml
 !.env.example
+!.env.bot.example
 work
 .config
+keys
+**/*.p8
+**/*.pub
+!scripts/**
+!scripts/bin/**
