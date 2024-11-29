@@ -5,6 +5,7 @@ services:
        dockerfile: Dockerfile.config
        context: .
      image: ghcr.io/kameshsampath/apj-build-2024-slack-demo/snow-config:py-311
+     pull_policy: always
      user: me
      volumes:
         - snowflake_home:/home/me/.snowflake
@@ -17,6 +18,7 @@ services:
         dockerfile: Dockerfile
         context: .
     image: ghcr.io/kameshsampath/apj-build-2024-slack-demo/slack-bot:py-311
+    pull_policy: always
     user: me
     env_file: 
         - .env.bot
