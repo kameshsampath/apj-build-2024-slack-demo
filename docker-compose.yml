@@ -15,7 +15,7 @@ services:
    slack-bot:
     container_name: demo-mate
     build:
-        dockerfile: Dockerfile
+        dockerfile: Dockerfile.bot
         context: .
     image: ghcr.io/snowflake-labs/apj-build-2024-slack-demo/slack-bot:py-311
     pull_policy: always
@@ -25,8 +25,8 @@ services:
     volumes:
       -  snowflake_home:/home/me/.snowflake
     entrypoint: /home/me/.local/bin/run
-    depends_on:
-      - config
+    # depends_on:
+    #   - config
 volumes:
   snowflake_home:
        

@@ -1,7 +1,9 @@
-import os
 import logging
+import os
+import re
+from typing import Any, Dict
+
 import requests
-from typing import Dict, Any
 
 from security.jwt_generator import JWTGenerator
 
@@ -63,6 +65,39 @@ class Cortlayst:
         self.LOGGER.debug("Getting JWT Token")
         return self.jwt_generator.generate_token()
 
+    def sanitize_host_name(self, url: str) -> str:
+        """
+         Replace underscores with hyphens only in the host portion of a URL.
+
+         Args:
+             url: Input URL string
+
+         Returns:
+             URL with underscores in host converted to hyphens
+
+         Examples:
+        >>> convert_host_underscores("https://my_server_name.example.com/path_name")
+        "https://my-server-name.example.com/path_name"
+
+        >>> convert_host_underscores("http://sub_domain.my_site_name.com:8080/my_path")
+        "http://sub-domain.my-site-name.com:8080/my_path"
+
+        >>> convert_host_underscores("https://example.com/path_with_underscore")
+        "https://example.com/path_with_underscore"
+        """
+        # Pattern matches host part between // and next / or end of string
+        pattern = r"(?<=//)[^/]+(?=/|$)"
+
+        def replace_host(match):
+            # Replace underscores with hyphens in the matched host portion
+            return match.group(0).replace("_", "-")
+
+        # Only replace if underscores exist in host portion
+        matched_host = re.search(pattern, url)
+        if matched_host and "_" in matched_host.group(0):
+            return re.sub(pattern, replace_host, url)
+        return url
+
     def answer(self, question) -> Dict[str, Any]:
         """
         Makes an API call to Cortex Analyst to perform data analysis.
@@ -82,6 +117,9 @@ class Cortlayst:
             ],
             "semantic_model_file": f"@{self.database}.{self.schema}.{self.stage}/{self.file}",
         }
+
+        # make sure no underscores are there in host of the URL
+        self.analyst_endpoint = self.sanitize_host_name(self.analyst_endpoint)
 
         self.LOGGER.debug(f"Analyst Endpoint:{self.analyst_endpoint}")
         self.LOGGER.debug(f"Request Payload:{payload}")

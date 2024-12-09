@@ -4,8 +4,8 @@
 import io
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any, Dict, List
 
 # Third-party imports
@@ -20,7 +20,6 @@ import handler_tasks.blocks as blocks
 from handler_tasks.cortalyst import Cortlayst
 from handler_tasks.db_setup import DBSetup
 from log.logger import get_logger as logger
-
 
 logger = logger("demo_mate_bot")
 
@@ -40,16 +39,18 @@ except Exception as e:
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 db_setup: DBSetup = DBSetup(session=session)
-
-if os.path.exists(".dbinfo"):
-    logger.debug("Loading db and schema info from file .dbinfo")
-    with open(".dbinfo", "r") as file:
+__db_info_file = Path.home().joinpath(".snowflake/.dbinfo")
+if __db_info_file.exists():
+    logger.debug(f"Loading db and schema info from file {__db_info_file}")
+    with __db_info_file.open(mode="r") as file:
         db_info = json.load(file)
         db_setup.db_name = db_info["db_name"]
         db_setup.schema_name = db_info["schema_name"]
         logger.debug(
             f"App will use DB: '{db_setup.db_name}' and Schema: '{ db_setup.schema_name}'"
         )
+else:
+    logger.debug(f"File {__db_info_file} does not exists, using defaults.")
 
 
 def do_setup(
@@ -105,7 +106,9 @@ SELECT * FROM {db_name}.{schema_name}.SUPPORT_TICKETS;
 ```""",
         )
         ## write to file for persistence
-        with open(".dbinfo", "w") as file:
+        global __db_info_file
+        with __db_info_file.open(mode="w") as file:
+            logger.info(f"Saved db info to file {__db_info_file}")
             json.dump(
                 {"db_name": db_name, "schema_name": schema_name},
                 file,
@@ -269,6 +272,15 @@ def cleanup_handler(ack, client, command, respond):
                     channel=channel_id,
                     text=f":white_check_mark: Database `{db_name}` dropped successfully.",
                 )
+            global __db_info_file
+            if __db_info_file.exists():
+                logger.info(f"Removing file {__db_info_file}")
+                try:
+                    __db_info_file.unlink(missing_ok=True)
+                except Exception as e:
+                    logger.warning(
+                        f"Error removing file {__db_info_file}, {e}. Remove it manually."
+                    )
 
     except Exception as e:
         logger.error(f"Failed to cleanup: {e}")
@@ -440,6 +452,8 @@ def ask_cortex_analyst(channel_id: str, client: WebClient, say, logger, question
             )
 
         cortalyst = Cortlayst(
+            database=db_setup.db_name,
+            schema=db_setup.schema_name,
             account=session.conf.get("account"),
             user=session.conf.get("user"),
             host=session.conf.get("host"),

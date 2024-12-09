@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Exit on error, undefined variables, and pipe failures
-set -euox pipefail
+set -euo pipefail
 
 # Setup logging
 log() {

@@ -25,3 +25,4 @@ create or replace table SUPPORT_TICKETS (
 
 copy into SUPPORT_TICKETS
   from @support_tickets_data_stage;
+
